@@ -1,0 +1,246 @@
+<?xml version="1.0"?>
+
+<project name="DCS Java Cloud TAAROA" default="compile" basedir=".">
+
+	<property file="build.properties"/>
+	<property file="${user.home}/build.properties"/>
+
+	<!--
+		=== Compilation Classpath ===
+	-->
+	<path id="compile.classpath">
+		<pathelement location="${lib.path}"/>
+		<fileset dir="${lib.path}">
+			<include name="**/*.jar"/>
+		</fileset>
+	</path>
+
+	<!--
+		=== "all" Target ===
+	-->
+	<target	name="all"
+		depends="clean,compile"
+		description="Clean build and dist directories, then compile"/>
+
+	<!--
+		=== "clean" Target ===
+	-->
+	<target	name="clean"
+		description="Delete old build and dist directories">
+		<delete dir="${build.home}"/>
+		<delete dir="${dist.home}"/>
+		<delete dir="${test.build.path}"/>
+		<delete dir="${test.out.path}"/>
+	</target>
+
+	<!--
+		=== "compile" Target ===
+	-->
+	<target	name="compile"
+		depends="prepare"
+		description="Compile Java sources">
+
+		<!-- Compile Java classes as necessary -->
+		<javac	srcdir="${src.home}"
+			destdir="${build.home}/classes"
+			debug="${compile.debug}"
+			deprecation="${compile.deprecation}"
+			optimize="${compile.optimize}">
+
+			<classpath refid="compile.classpath"/>
+			<compilerarg value="-Xlint:unchecked"/>
+<!--
+			<compilerarg value="-proc:none"/>
+-->
+		</javac>
+
+		<!-- Copy application resources -->
+<!--
+		<copy  todir="${build.home}/classes">
+			<fileset dir="${src.home}" excludes="**/*.java"/>
+		</copy>
+-->
+	</target>
+
+	<!--
+		=== "dist" Target ===
+	-->
+	<target	name="dist"
+		depends="compile,javadoc"
+		description="Create binary distribution">
+
+		<!-- Copy documentation subdirectories -->
+		<mkdir dir="${dist.home}/docs"/>
+		<copy todir="${dist.home}/docs">
+			<fileset dir="${docs.home}"/>
+		</copy>
+
+		<!-- Create application JAR file -->
+		<jar	jarfile="${jar.file}"
+			basedir="${build.home}/classes">
+
+			<!-- Copy additional files to ${dist.home} as necessary -->
+
+			<metainf dir="${conf.home}" excludes=".*"/>
+
+			<manifest>
+<!--
+				<attribute name="Class-Path" value="${classpath.jar}"/>
+-->
+				<attribute name="Built-By" value="${user.name}"/>
+				<section name="it.unipmn.di.dcs.common">
+					<attribute name="Specification-Title" value="${app.name}"/>
+					<attribute name="Specification-Version" value="${app.version}"/>
+					<attribute name="Specification-Vendor" value="Distributed Computing System (DCS) Group"/>
+					<attribute name="Implementation-Title" value="${app.name}"/>
+					<attribute name="Implementation-Version" value="${app.version} ${TODAY}"/> 
+					<attribute name="Implementation-Vendor" value="Distributed Computing System (DCS) Group"/>
+				</section>
+
+			</manifest>
+		</jar>
+
+	</target>
+
+	<!--
+		=== "javadoc" Target ===
+	-->
+	<target	name="javadoc"
+		description="Create Javadoc API documentation">
+
+		<mkdir dir="${dist.home}/docs/api"/>
+		<javadoc	sourcepath="${src.home}"
+				destdir="${dist.home}/docs/api"
+				packagenames="*"
+				author="true"
+				use="true"
+				version="true"
+				windowtitle="${app.descr}">
+
+				<classpath refid="compile.classpath"/>
+
+			<doclet name="org.umlgraph.doclet.UmlGraphDoc" path="${lib.path}/UmlGraph-5.6.jar">
+				<param name="-inferrel"/>
+				<param name="-inferdep"/>
+				<param name="-hide" value="java.*"/>
+				<param name="-collpackages" value="java.util.*"/>
+				<param name="-qualify"/>
+				<param name="-postfixpackage"/>
+				<param name="-nodefontsize" value="9"/>
+				<param name="-nodefontpackagesize" value="7"/>
+				<param name="-link" value="http://docs.oracle.com/javase/7/docs/guide/javadoc/doclet/"/>
+				<param name="-link" value="http://docs.oracle.com/javase/7/docs/api/"/>
+			</doclet>
+		</javadoc>
+
+	</target>
+
+	<!--
+		=== "prepare" Target ===
+	-->
+	<target name="prepare">
+		<!-- Create build directories as needed -->
+		<mkdir dir="${build.home}"/>
+		<mkdir dir="${build.home}/classes"/>
+
+		<!-- Copy static files from external dependencies as needed -->
+		<!-- *** CUSTOMIZE HERE AS REQUIRED BY YOUR APPLICATION *** -->
+	</target>
+
+	<!--
+		=== Test Classpath ===
+	-->
+	<path id="test.classpath">
+		<pathelement location="${build.home}/classes"/>
+
+		<pathelement location="${test.build.path}/classes"/>
+
+		<pathelement location="${lib.path}"/>
+		<fileset dir="${lib.path}">
+			<include name="**/*.jar"/>
+		</fileset>
+
+<!--
+		<pathelement location="${conf.home}"/>
+		<fileset dir="${conf.home}">
+			<exclude name=".*"/>
+		</fileset>
+-->
+	</path>
+
+	<!--
+		=== "test" Target ===
+	-->
+	<target name="test"
+		depends="test.compile"
+		description="Run the test suite">
+
+		<junit	fork="yes"
+			haltonfailure="yes">
+
+			<formatter	type="xml"
+					usefile="true"/>
+			<classpath refid="test.classpath"/>
+
+			<batchtest	fork="yes"
+					todir="${test.out.path}">
+				<fileset dir="${test.src.path}">
+					<include name="test/unit/**/*.java"/>
+				</fileset>
+			</batchtest>
+		</junit>
+
+<!--
+		<javac fork="yes" executable="apt" srcdir="${src}" destdir="${build}">
+			<classpath>
+				<pathelement path="tutoriel-annotations.jar"/>
+			</classpath>
+			<compilerarg value="-Arelease"/>
+		</javac>
+-->
+	</target>
+
+	<!--
+		=== "test.compile" Target ===
+	-->
+	<target	name="test.compile"
+		depends="compile,test.prepare"
+		description="Compile Java test suite sources">
+
+		<!-- Compile Java classes as necessary -->
+		<javac	srcdir="${test.src.path}"
+			destdir="${test.build.path}/classes"
+			debug="${compile.debug}"
+			deprecation="${compile.deprecation}"
+			optimize="${compile.optimize}">
+
+			<classpath refid="test.classpath"/>
+			<compilerarg value="-Xlint:unchecked"/>
+<!--
+			<compilerarg value="-XprintProcessorInfo"/>
+			<compilerarg value="-XprintRounds"/>
+			<compilerarg path="-processorpath test/build/classes"/>
+-->
+		</javac>
+	</target>
+
+	<!--
+		=== "test.prepare" Target ===
+	-->
+	<target name="test.prepare">
+		<!-- Create build directories as needed -->
+		<mkdir dir="${test.build.path}"/>
+		<mkdir dir="${test.build.path}/classes"/>
+		<mkdir dir="${test.out.path}"/>
+
+		<!-- Copy static files from external dependencies as needed -->
+		<!-- *** CUSTOMIZE HERE AS REQUIRED BY YOUR APPLICATION *** -->
+		<mkdir dir="${test.build.path}/classes/META-INF"/>
+		<copy todir="${test.build.path}/classes/META-INF">
+			<fileset dir="${conf.home}">
+				<exclude name=".*"/>
+			</fileset>
+		</copy>
+	</target>
+
+</project>
